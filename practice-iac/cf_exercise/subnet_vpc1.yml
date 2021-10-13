@@ -1,0 +1,81 @@
+
+Parameters:
+  ProjectName:
+    Type: String
+    MinLength: '1'
+    MaxLength: '2048'
+    Default: '-'
+
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - sit
+      - qa 
+      - prod
+  VPCid:
+    Type: String
+    Default: vpc-0a4d1e63bd4c61a7f
+    AllowedValues:
+      - vpc-0a4d1e63bd4c61a7f
+      - vpc-03b6a6f63e6e2f60d
+
+Resources:
+  PublicSubnetA: 
+    Type: AWS::EC2::Subnet
+    Properties: 
+      # AssignIpv6AddressOnCreation: false
+      CidrBlock: "10.10.10.0/25"
+      # MapPublicIpOnLaunch: true
+      # Tags: 
+      #   - Name: "PublicSubnetA"
+      VpcId: !Ref VPCid
+      MapPublicIpOnLaunch: true
+
+  PrivateSubnetA: 
+    Type: AWS::EC2::Subnet
+    Properties: 
+      # AssignIpv6AddressOnCreation: false
+      CidrBlock: "10.10.10.128/25"
+      AvailabilityZone: "ap-southeast-1b"
+      # MapPublicIpOnLaunch: true
+      # Tags: 
+      #   - Name: "PrivateSubnetA"
+      VpcId: !Ref VPCid
+
+  PublicRouteTable: 
+    Type: AWS::EC2::RouteTable
+    Properties: 
+      VpcId: !Ref VPCid
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: "igw-09c5cd620c5d51b54"
+
+  PublicSubnetRouteTableAssociation: 
+    Type: AWS::EC2::SubnetRouteTableAssociation 
+    Properties: 
+      SubnetId: !Ref PublicSubnetA
+      RouteTableId: !Ref PublicRouteTable
+
+Outputs:
+  PublicSubnetA:
+    Value: !Ref PublicSubnetA
+    Description: Public Subnet A 
+    Export:
+      Name: !Sub Public-Subnet-A-${Environment}-Arn
+
+  PrivateSubnetA:
+    Value: !Ref PrivateSubnetA 
+    Description: Private Subnet A 
+    Export:
+      Name: !Sub Private-Subnet-A-${Environment}-Arn
+  # PrivateSubnetAb:
+  #   Value: !Ref PrivateSubnetAb 
+  #   Description: Private Subnet Ab 
+  #   Export:
+  #     Name: !Sub Private-Subnet-Ab-${Environment}-Arn

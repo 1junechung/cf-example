@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Description": "AWS CloudFormation Template for creating an Amazon RDS DB instance: 
+  **WARNING** This template creates an RDS DB instance. You will be billed for the AWS 
+  resources used if you create a stack from this template.
+Parameters:
+  # AppName:
+  #   Type: String
+  #   MinLength: "1"
+  #   MaxLength: "2048"
+  #   AllowedPattern: "^[0-9a-z]+([0-9a-z-]*[0-9a-z])*$"
+  #   Default: "sample-java"
+  #   Description: "Name of application"
+  DBInstanceID:
+    Default: testdb
+    Description: Name of Database for EGR
+    Type: String
+    MinLength: "1"
+    MaxLength: "10"
+    AllowedPattern: "^[0-9a-z]+([0-9a-z-]*[0-9a-z])*$"
+  Environment:
+    Type: String
+    Default: qa
+    AllowedValues:
+      - dev
+      - sit
+      - qa
+      - prod
+    Description: Select the environment in which you want to provision the infrastructure resources
+ 
+Resources:
+  ServerASecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join
+        - ""
+        - - "servera"
+          - "-"
+          - !Ref Environment
+          - "-SG"
+      GroupDescription: Enable HTTP and RDP and HTTPS
+      VpcId: 
+        vpc-0a4d1e63bd4c61a7f
+      SecurityGroupIngress: # only allowing 443(https) and 3389(rdp access) into EC2
+        - IpProtocol: tcp
+          FromPort: "443"
+          ToPort: "443"
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: "80"
+          ToPort: "80"
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: 0.0.0.0/0
+  ServerBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join
+        - ""
+        - - "serverb"
+          - "-"
+          - !Ref Environment
+          - "-SG"
+      GroupDescription: Enable HTTP and RDP and HTTPS
+      VpcId: 
+        vpc-03b6a6f63e6e2f60d
+
+      SecurityGroupIngress: # only allowing 443(https) and 3389(rdp access) into EC2
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          SourceSecurityGroupId: !GetAtt ServerASecurityGroup.GroupId
+
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: !Join
+        - ""
+        - - !Ref DBInstanceID
+          - "-"
+          - !Ref Environment
+          - "-DB-SG"
+      GroupDescription: Control access to RDS
+      SecurityGroupIngress:
+        - Description: Grant access from EC2 instances of App Servers
+          SourceSecurityGroupId: !GetAtt ServerASecurityGroup.GroupId
+          IpProtocol: tcp
+          FromPort: "3306"
+          ToPort: "3306"
+
+      VpcId: vpc-0a4d1e63bd4c61a7f
+
+Outputs:
+# output of mccnonprod sg 
+  ServerASecurityGroupID:
+    Description: Private Security Group for ServerA
+    Value: !GetAtt ServerASecurityGroup.GroupId
+    Export:
+      Name: !Join
+        - ""
+        - - "SecurityGroupStack-"
+          - "servera"
+          - "-"
+          - !Ref Environment
+          - "-SG"
+  ServerBSecurityGroupID:
+    Description: Private Security Group for ServerB
+    Value: !GetAtt ServerBSecurityGroup.GroupId
+    Export:
+      Name: !Join
+        - ""
+        - - "SecurityGroupStack-"
+          - "serverb"
+          - "-"
+          - !Ref Environment
+          - "-SG"
+  RDSSecurityGroupID:
+    Description: Private Security Group for ServerA
+    Value: !GetAtt RDSSecurityGroup.GroupId
+    Export:
+      Name: !Join
+        - ""
+        - - "SecurityGroupStack-"
+          - !Ref DBInstanceID
+          - "-"
+          - !Ref Environment
+          - "-SG"
+

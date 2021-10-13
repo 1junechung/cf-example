@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Create a DB subnet group and MYSQL Database"
+
+Parameters:
+  VPCid:
+    Type: String
+    Description: The VPC to create the cluster
+    Default: vpc-0a4d1e63bd4c61a7f
+
+  PrivateSubnetA:
+    Type: String
+    Description: The subnet for the DB cluster
+    Default: subnet-09fa27c0213af2948
+
+  PrivateSubnetAb:
+    Type: String
+    Description: The subnet for the DB cluster
+    Default: subnet-01d22b2b1fbb3b9c0 #pb
+
+  MasterUsername:
+    Type: String
+    Description: The username for our database.
+  
+  MasterUserPassword:
+    Type: String
+    Description: The password for the database.
+    "NoEcho": true
+
+  ParameterGroup:
+    Type: String
+    Description: The name of the database parameter group created.
+    Default: mysql-default-parametergroup
+
+Resources:
+    RDSDBSubnetGroup:
+        Type: "AWS::RDS::DBSubnetGroup"
+        Properties:
+            DBSubnetGroupDescription: "Subnet Group for mySQL database"
+            DBSubnetGroupName: !Sub "${AWS::Region}-aws-dxl-database-subnet-group"
+            SubnetIds: 
+              - !Ref PrivateSubnetA
+              - !Ref PrivateSubnetAb
+              
+
+    RDSDBInstance:
+        Type: AWS::RDS::DBInstance
+        Properties:
+            DBInstanceIdentifier: testdb
+            AllocatedStorage: 100
+            DBInstanceClass: db.t3.micro
+            Engine: "MYSQL"
+            MasterUsername: !Ref MasterUsername
+            MasterUserPassword: !Ref MasterUserPassword
+            BackupRetentionPeriod: 7
+            EngineVersion: 8.0.20
+            AutoMinorVersionUpgrade: true
+            Iops: 1000
+            PubliclyAccessible: false
+            StorageType: io1
+            Port: 3306
+            StorageEncrypted: true
+            CopyTagsToSnapshot: true
+            MonitoringInterval: 60
+            EnableIAMDatabaseAuthentication: false
+            EnablePerformanceInsights: true
+            PerformanceInsightsRetentionPeriod: 7
+            DeletionProtection: true
+            DBSubnetGroupName: !Ref RDSDBSubnetGroup
+            VPCSecurityGroups: 
+              - Fn::ImportValue: !Join
+                  - ""
+                  - - "SecurityGroupStack-"
+                    - "testdb"
+                    - "-"
+                    - "dev"
+                    - "-SG"
+
+            MaxAllocatedStorage: 1000
+            DBParameterGroupName: mysql-default-parametergroup
+            MonitoringRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/rds-monitoring-role"
+Outputs:
+   Cluster:
+    Description: The DB Cluster Name
+    Value: !Ref RDSDBInstance
+    
+   SubnetGroup:
+    Description: The db subnet group name 
+    Value: !Ref RDSDBSubnetGroup
